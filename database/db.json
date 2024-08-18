@@ -81,6 +81,36 @@
       "bio": "This is abrar fahim, edited 2",
       "password": "$2a$08$GeHgrC4w7GDOHTYxb6LDneDRxjVz0dJ.J0qYSyrdKuCzLKg98qsje",
       "favourites": []
+    },
+    {
+      "id": "ffdff231e124beddef7e",
+      "email": "minhaz@yahoo.com",
+      "firstName": "Minhaz",
+      "lastName": "Sharif",
+      "avatar": null,
+      "bio": "",
+      "password": "$2a$08$/3JrtdJ0D0.junjQH9BiQOEqj7yyg70EOQH8O9s/yPxGUSUeByAaq",
+      "favourites": []
+    },
+    {
+      "id": "264273c5242ae5e85789",
+      "email": "sharif@yahoo.com",
+      "firstName": "Minhaz",
+      "lastName": "Sharif",
+      "avatar": null,
+      "bio": "",
+      "password": "$2a$08$xWSpiye.UF2T2FS0eK7tPukxCNQ2RAxJMC2TyVfHd/ktNSe.MXXv2",
+      "favourites": []
+    },
+    {
+      "id": "45257d03408280768e27",
+      "email": "minhaz@gmail.com",
+      "firstName": "Minhaz",
+      "lastName": "Sharif",
+      "avatar": null,
+      "bio": "",
+      "password": "$2a$08$r2OEwTEez4tl1XujPiSUBOk5VQsfcvNsrgd1Tq650d5TCRXfh4yRm",
+      "favourites": []
     }
   ],
   "blogs": [
