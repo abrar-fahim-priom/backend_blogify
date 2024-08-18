@@ -1,8 +1,8 @@
 const { unlinkSync } = require("node:fs");
 const path = require("path");
 
-const deleteImage = (filename) => {
-	const filePath = path.join(__dirname, "../public/uploads/blog", filename);
+const deleteImage = (filename, folder) => {
+	const filePath = path.join(__dirname, `../public/uploads/${folder}`, filename);
 
 	try {
 		unlinkSync(filePath);

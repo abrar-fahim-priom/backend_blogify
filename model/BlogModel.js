@@ -4,7 +4,7 @@ const blogSchema = new mongoose.Schema(
 	{
 		title: { type: String, required: true },
 		content: { type: String, required: true },
-		thumbnail: { type: String, default: "thumbnail-1708765297564-606798153.png" },
+		thumbnail: { type: String, default: "thumbnail-1708793859418-241650391.png" },
 		author: {
 			id: String,
 			firstName: String,

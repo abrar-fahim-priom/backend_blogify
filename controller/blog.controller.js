@@ -1,3 +1,4 @@
+const { DEFAULT_BLOG_IMAGE } = require("../consts");
 const Blog = require("../model/BlogModel");
 const { BlogService } = require("../services/blog.service");
 const deleteImage = require("../util/deleteImage");
@@ -90,7 +91,10 @@ const deleteBlog = async (req, res) => {
 	}
 
 	const deletedBlog = await Blog.findByIdAndDelete(postId);
-	deleteImage(deletedBlog?.thumbnail); // delete the unused file
+
+	if (deletedBlog?.thumbnail !== DEFAULT_BLOG_IMAGE) {
+		deleteImage(deletedBlog.thumbnail, "blog"); // delete the unused file
+	}
 
 	res.status(200).json({ message: "Blog deleted successfully" });
 };

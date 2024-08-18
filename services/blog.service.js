@@ -1,3 +1,4 @@
+const { DEFAULT_BLOG_IMAGE } = require("../consts");
 const Blog = require("../model/BlogModel");
 const User = require("../model/UserModel");
 const deleteImage = require("../util/deleteImage");
@@ -78,8 +79,8 @@ const updateBlog = async (postId, body) => {
 
 	const updatedBlog = (await Blog.findByIdAndUpdate(postId, body, { new: true }))?.toObject();
 
-	if (body?.thumbnail) {
-		deleteImage(blog?.thumbnail); // delete the previous image
+	if (body?.thumbnail && blog?.thumbnail !== DEFAULT_BLOG_IMAGE) {
+		deleteImage(blog.thumbnail, "blog"); // delete the previous image
 	}
 
 	return updatedBlog;

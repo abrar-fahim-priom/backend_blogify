@@ -1,5 +1,5 @@
-const { Blog } = require("../model/blog.model");
-const { User } = require("../model/user.model");
+const Blog = require("../model/BlogModel");
+const User = require("../model/UserModel");
 
 /**
  * Retrieves a user by their ID and returns their profile information along with their blogs.
@@ -7,23 +7,23 @@ const { User } = require("../model/user.model");
  * @returns {Object} - The user's profile information and blogs.
  * @throws {Error} - If the user is not found.
  */
-const getUserById = (userId) => {
-  const data = User.findById(userId);
+const getUserById = async (userId) => {
+	const data = (await User.findById(userId).populate("favourites"))?.toObject();
 
-  if (!data) {
-    throw new Error("User not found");
-  }
+	if (!data) {
+		throw new Error("User not found");
+	}
 
-  // get users blogs
-  const blogs = Blog.filter({ author: { id: userId } });
+	// get users blogs
+	const blogs = (await Blog.find({ "author.id": userId })).map((blog) => blog.toObject());
 
-  const userObj = Object.assign({}, data);
-  delete userObj.password;
-  
-  return {
-    ...userObj,
-    blogs,
-  };
+	const userObj = Object.assign({}, data);
+	delete userObj.password;
+
+	return {
+		...userObj,
+		blogs,
+	};
 };
 
 /**
@@ -33,17 +33,17 @@ const getUserById = (userId) => {
  * @returns {object} - The updated user profile.
  * @throws {Error} - If the user is not found.
  */
-const updateUserProfile = (user, body) => {
-  const data = User.updateById(user.id, body);
+const updateUserProfile = async (user, body) => {
+	const data = (await User.findByIdAndUpdate(user.id, body, { new: true }))?.toObject();
 
-  if (!data) {
-    throw new Error("User not found");
-  }
+	if (!data) {
+		throw new Error("User not found");
+	}
 
-  const userObj = Object.assign({}, data);
-  delete userObj.password;
+	const userObj = Object.assign({}, data);
+	delete userObj.password;
 
-  return userObj;
+	return userObj;
 };
 
 module.exports.ProfileService = { getUserById, updateUserProfile };
