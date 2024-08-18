@@ -1,19 +1,20 @@
-const { User } = require("../model/user.model");
-module.exports = (req) => {
-  const { email } = req?.claims || {};
-  try {
-    const user = User.findUserByEmail(email);
+const User = require("../model/UserModel");
 
-    if (!user) {
-      throw new Error("User not found with the Token");
-    }
+module.exports = async (req) => {
+	const { email } = req?.claims || {};
+	try {
+		const user = (await User.findOne({ email }))?.toObject();
 
-    const newUserObj = Object.assign({}, user);
-    delete newUserObj.password;
+		if (!user) {
+			throw new Error("User not found with the Token");
+		}
 
-    return newUserObj;
-  } catch (e) {
-    console.error(e);
-    throw new Error("User not found", e.message);
-  }
+		const newUserObj = Object.assign({}, user);
+		delete newUserObj.password;
+
+		return newUserObj;
+	} catch (e) {
+		console.error(e);
+		throw new Error("User not found", e.message);
+	}
 };

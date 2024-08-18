@@ -1,190 +1,192 @@
-const { Blog } = require("../model/blog.model");
+const Blog = require("../model/BlogModel");
 const { BlogService } = require("../services/blog.service");
+const deleteImage = require("../util/deleteImage");
 const getAuthUser = require("../util/getAuthUser");
 
 const getAllBlogs = async (req, res) => {
-  //Query - limit, start, page
-  const { limit, page } = req.query;
+	//Query - limit, start, page
+	const { limit, page } = req.query;
 
-  // Handle if no query
-  const query = {
-    limit: 10,
-    page: 1,
-  };
+	// Handle if no query
+	const query = {
+		limit: 10,
+		page: 1,
+	};
 
-  if (limit) {
-    query.limit = parseInt(limit);
-  }
-  if (page) {
-    query.page = parseInt(page);
-  }
+	if (limit) {
+		query.limit = parseInt(limit);
+	}
+	if (page) {
+		query.page = parseInt(page);
+	}
 
-  const blogs = BlogService.getBlogs(query);
+	const blogs = await BlogService.getBlogs(query);
 
-  res.status(200).json(blogs);
+	res.status(200).json(blogs);
 };
 
 const getSingleBlog = async (req, res) => {
-  const { postId } = req.params;
+	const { postId } = req.params;
 
-  if (!postId) {
-    return res.status(400).json({ message: "Blog postId is required" });
-  }
+	if (!postId) {
+		return res.status(400).json({ message: "Blog postId is required" });
+	}
 
-  const blog = BlogService.getSingleBlog(postId);
+	const blog = await BlogService.getSingleBlog(postId);
 
-  if (!blog) {
-    return res.status(404).json({ message: "Blog not found" });
-  }
+	if (!blog) {
+		return res.status(404).json({ message: "Blog not found" });
+	}
 
-  if (req?.claims?.email) {
-    const user = getAuthUser(req);
-    blog.isFavourite = user.favourites.some((fav) => fav.id == blog.id);
-  }
+	if (req?.claims?.email) {
+		const user = await getAuthUser(req);
+		blog.isFavourite = user.favourites.some((fav) => fav.id == blog.id);
+	}
 
-  res.status(200).json(blog);
+	res.status(200).json(blog);
 };
 
 const createNewBlog = async (req, res) => {
-  const { title, content, tags } = req?.body || {};
+	const { title, content, tags } = req?.body || {};
 
-  if (!title) {
-    return res.status(400).json({ message: "Title is required" });
-  }
+	if (!title) {
+		return res.status(400).json({ message: "Title is required" });
+	}
 
-  if (!content) {
-    return res.status(400).json({ message: "Content is required" });
-  }
+	if (!content) {
+		return res.status(400).json({ message: "Content is required" });
+	}
 
-  if (!tags) {
-    return res.status(400).json({ message: "Tags are required" });
-  }
+	if (!tags) {
+		return res.status(400).json({ message: "Tags are required" });
+	}
 
-  const author = getAuthUser(req);
+	const author = await getAuthUser(req);
 
-  if (req?.file?.filename) {
-    req.body.thumbnail = req?.file?.filename;
-  }
+	if (req?.file?.filename) {
+		req.body.thumbnail = req?.file?.filename;
+	}
 
-  const newBlog = BlogService.createNewBlog(req.body, author);
+	const newBlog = await BlogService.createNewBlog(req.body, author);
 
-  res.status(201).json({
-    status: "success",
-    message: "Blog created successfully",
-    blog: newBlog,
-  });
+	res.status(201).json({
+		status: "success",
+		message: "Blog created successfully",
+		blog: newBlog,
+	});
 };
 
 const deleteBlog = async (req, res) => {
-  const { postId } = req.params;
+	const { postId } = req.params;
 
-  if (!postId) {
-    return res.status(400).json({ message: "Blog postId is required" });
-  }
+	if (!postId) {
+		return res.status(400).json({ message: "Blog postId is required" });
+	}
 
-  const blog = BlogService.getSingleBlog(postId);
+	const blog = await BlogService.getSingleBlog(postId);
 
-  if (!blog) {
-    return res.status(404).json({ message: "Blog not found" });
-  }
+	if (!blog) {
+		return res.status(404).json({ message: "Blog not found" });
+	}
 
-  Blog.deleteById(postId);
+	const deletedBlog = await Blog.findByIdAndDelete(postId);
+	deleteImage(deletedBlog?.thumbnail); // delete the unused file
 
-  res.status(200).json({ message: "Blog deleted successfully" });
+	res.status(200).json({ message: "Blog deleted successfully" });
 };
 
 const updateBlog = async (req, res) => {
-  const { postId } = req.params;
+	const { postId } = req.params;
 
-  if (!postId) {
-    return res.status(400).json({ message: "Blog postId is required" });
-  }
+	if (!postId) {
+		return res.status(400).json({ message: "Blog postId is required" });
+	}
 
-  if (req?.file?.filename) {
-    req.body.thumbnail = req?.file?.filename;
-  }
+	if (req?.file?.filename) {
+		req.body.thumbnail = req?.file?.filename;
+	}
 
-  const response = BlogService.updateBlog(postId, req.body);
+	const response = await BlogService.updateBlog(postId, req.body);
 
-  res.status(200).json(response);
+	res.status(200).json(response);
 };
 
 const getPopularBlogs = async (req, res) => {
-  const { limit } = req?.query;
+	const { limit } = req?.query;
 
-  const popularBlogs = BlogService.popularBlogs(limit);
-  return res.status(200).json(popularBlogs);
+	const popularBlogs = await BlogService.popularBlogs(limit);
+	return res.status(200).json(popularBlogs);
 };
 const getFavoriteBlogs = async (req, res) => {
-  const user = getAuthUser(req);
+	const user = await getAuthUser(req);
 
-  const favoriteBlogs = BlogService.favoriteBlogs(user);
-  return res.status(200).json(favoriteBlogs);
+	const favoriteBlogs = await BlogService.favoriteBlogs(user);
+	return res.status(200).json(favoriteBlogs);
 };
 
 const likeABlog = async (req, res) => {
-  const { postId } = req.params;
-  const user = getAuthUser(req);
+	const { postId } = req.params;
+	const user = await getAuthUser(req);
 
-  const blog = BlogService.likeABlog(postId, user);
+	const blog = await BlogService.likeABlog(postId, user);
 
-  res.status(200).json(blog);
+	res.status(200).json(blog);
 };
 
 const commentBlog = async (req, res) => {
-  const { postId } = req.params;
-  const { content } = req.body;
+	const { postId } = req.params;
+	const { content } = req.body;
 
-  if (!postId) {
-    return res.status(400).json({ message: "Blog postId is required" });
-  }
+	if (!postId) {
+		return res.status(400).json({ message: "Blog postId is required" });
+	}
 
-  if (!content) {
-    return res.status(400).json({ message: "Comment content is required" });
-  }
+	if (!content) {
+		return res.status(400).json({ message: "Comment content is required" });
+	}
 
-  const { id, firstName, lastName, avatar } = getAuthUser(req);
-  const author = { id, firstName, lastName, avatar };
-  const blog = BlogService.commentAPost(postId, { content, author });
+	const { id, firstName, lastName, avatar } = await getAuthUser(req);
+	const author = { id: String(id), firstName, lastName, avatar };
+	const blog = await BlogService.commentAPost(postId, { content, author });
 
-  res.status(200).json(blog);
+	res.status(200).json(blog);
 };
 
 const deleteComment = async (req, res) => {
-  const { postId, commentId } = req.params;
+	const { postId, commentId } = req.params;
 
-  if (!postId) {
-    return res.status(400).json({ message: "Blog postId is required" });
-  }
+	if (!postId) {
+		return res.status(400).json({ message: "Blog postId is required" });
+	}
 
-  if (!commentId) {
-    return res.status(400).json({ message: "Comment id is required" });
-  }
+	if (!commentId) {
+		return res.status(400).json({ message: "Comment id is required" });
+	}
 
-  const blog = BlogService.deleteComment(postId, commentId);
+	const blog = await BlogService.deleteComment(postId, commentId);
 
-  res.status(200).json(blog);
+	res.status(200).json(blog);
 };
 
 const toggleFavourite = async (req, res) => {
-  const { postId } = req.params;
-  const user = getAuthUser(req);
+	const { postId } = req.params;
+	const user = await getAuthUser(req);
 
-  const blog = BlogService.toggleFavorite(postId, user);
+	const blog = await BlogService.toggleFavorite(postId, user);
 
-  res.status(200).json(blog);
+	res.status(200).json(blog);
 };
 
 module.exports.BlogController = {
-  getAllBlogs,
-  getSingleBlog,
-  createNewBlog,
-  deleteBlog,
-  updateBlog,
-  getPopularBlogs,
-  getFavoriteBlogs,
-  likeABlog,
-  commentBlog,
-  toggleFavourite,
-  deleteComment,
+	getAllBlogs,
+	getSingleBlog,
+	createNewBlog,
+	deleteBlog,
+	updateBlog,
+	getPopularBlogs,
+	getFavoriteBlogs,
+	likeABlog,
+	commentBlog,
+	toggleFavourite,
+	deleteComment,
 };

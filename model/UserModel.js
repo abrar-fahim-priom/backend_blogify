@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const { transformSchema } = require("../lib/transformSchema");
 
 const userSchema = new mongoose.Schema(
 	{
@@ -10,11 +9,7 @@ const userSchema = new mongoose.Schema(
 			type: String,
 			default: `https://randomuser.me/api/portraits/men/${Math.floor(Math.random() * 100)}.jpg`,
 		},
-		bio: {
-			type: String,
-			default:
-				"A Full Stack Web Application Developer from Bangladesh 🇧🇩 & a Programming Content Creator. Spend most of time coding outstanding projects or creating contents",
-		},
+		bio: String,
 		password: {
 			type: String,
 			required: true,
@@ -28,9 +23,23 @@ const userSchema = new mongoose.Schema(
 	}
 );
 
-userSchema.set("toJSON", transformSchema);
+userSchema.set("toJSON", {
+	transform: (doc, ret) => {
+		ret.id = ret._id;
+		delete ret._id;
+		delete ret.__v;
+		return ret;
+	},
+});
 
-userSchema.set("toObject", transformSchema);
+userSchema.set("toObject", {
+	transform: (doc, ret) => {
+		ret.id = ret._id;
+		delete ret._id;
+		delete ret.__v;
+		return ret;
+	},
+});
 
 const User = mongoose.model("User", userSchema);
 

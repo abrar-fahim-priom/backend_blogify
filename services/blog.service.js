@@ -1,6 +1,6 @@
-const { Blog } = require("../model/blog.model");
-const { User } = require("../model/user.model");
-const crypto = require("crypto");
+const Blog = require("../model/BlogModel");
+const User = require("../model/UserModel");
+const deleteImage = require("../util/deleteImage");
 
 /**
  * Creates a new blog.
@@ -8,24 +8,22 @@ const crypto = require("crypto");
  * @param {Object} author - The author of the blog containing id, firstName, lastName, and avatar.
  * @returns {Object} - The newly created blog.
  */
-const createNewBlog = (body, author) => {
-  const { title, content, tags, thumbnail } = body;
-  const { id, firstName, lastName, avatar } = author;
+const createNewBlog = async (body, author) => {
+	const { title, content, tags, thumbnail } = body;
+	const { id, firstName, lastName, avatar } = author;
 
-  //Create a new blog
-  const newBlog = Blog.create({
-    id: crypto.randomBytes(10).toString("hex"),
-    title,
-    content,
-    thumbnail: thumbnail || null,
-    author: { id, firstName, lastName, avatar },
-    tags: tags,
-    likes: [],
-    comments: [],
-    createdAt: new Date().toISOString(),
-  });
+	//Create a new blog
+	const newBlog = await Blog.create({
+		title,
+		content,
+		thumbnail: thumbnail || null,
+		author: { id, firstName, lastName, avatar },
+		tags: tags?.split(",").map((tag) => tag.trim()),
+		likes: [],
+		comments: [],
+	});
 
-  return newBlog;
+	return newBlog;
 };
 
 /**
@@ -36,24 +34,24 @@ const createNewBlog = (body, author) => {
  * @param {number} query.page - The page number to retrieve.
  * @returns {Object} - An object containing the total number of blogs, current page number, limit, and the paginated blogs.
  */
-const getBlogs = (query) => {
-  const blogs = Blog.findAll();
-  const { limit, page } = query;
+const getBlogs = async (query) => {
+	const blogs = (await Blog.find()).map((blog) => blog.toObject());
+	const { limit, page } = query;
 
-  if (blogs.length === 0) {
-    return { total: 0, blogs: [] };
-  }
+	if (blogs.length === 0) {
+		return { total: 0, blogs: [] };
+	}
 
-  const start = (page - 1) * limit;
-  const end = start + limit;
-  const paginatedBlogs = blogs.slice(start, end);
+	const start = (page - 1) * limit;
+	const end = start + limit;
+	const paginatedBlogs = blogs.slice(start, end);
 
-  // Make short blog descriptions
-  const shortBlogs = paginatedBlogs.map((blog) => {
-    return { ...blog, content: blog.content.slice(0, 180) + "..." };
-  });
+	// Make short blog descriptions
+	const shortBlogs = paginatedBlogs.map((blog) => {
+		return { ...blog, content: blog.content.slice(0, 180) + "..." };
+	});
 
-  return { total: blogs.length, page, limit, blogs: shortBlogs };
+	return { total: blogs.length, page, limit, blogs: shortBlogs };
 };
 
 /**
@@ -61,130 +59,138 @@ const getBlogs = (query) => {
  * @param {string} id - The ID of the blog.
  * @returns {Object} - The blog object.
  */
-const getSingleBlog = (id) => {
-  const blog = Blog.findById(id);
+const getSingleBlog = async (id) => {
+	const blog = (await Blog.findById(id))?.toObject();
 
-  return blog;
+	return blog;
 };
 
-const updateBlog = (postId, body) => {
-  const blog = getSingleBlog(postId);
+const updateBlog = async (postId, body) => {
+	const blog = await getSingleBlog(postId);
 
-  if (!blog) {
-    throw new Error("Blog not found");
-  }
+	if (!blog) {
+		throw new Error("Blog not found");
+	}
 
-  const updatedBlog = Blog.updateById(postId, body);
-  return updatedBlog;
+	if (body.tags) {
+		body.tags = body.tags?.split(",").map((tag) => tag.trim());
+	}
+
+	const updatedBlog = (await Blog.findByIdAndUpdate(postId, body, { new: true }))?.toObject();
+
+	if (body?.thumbnail) {
+		deleteImage(blog?.thumbnail); // delete the previous image
+	}
+
+	return updatedBlog;
 };
 
-const popularBlogs = (limit = 5) => {
-  const blogs = Blog.findAll();
-  const popularBlogs = blogs.sort((a, b) => b.likes.length - a.likes.length).slice(0, limit);
+const popularBlogs = async (limit = 5) => {
+	const blogs = (await Blog.find()).map((blog) => blog.toObject());
+	const popularBlogs = blogs.sort((a, b) => b.likes.length - a.likes.length).slice(0, limit);
 
-  if (popularBlogs.length === 0) {
-    return { total: 0, blogs: [] };
-  } else {
-    return { total: popularBlogs.length, blogs: popularBlogs };
-  }
+	if (popularBlogs.length === 0) {
+		return { total: 0, blogs: [] };
+	} else {
+		return { total: popularBlogs.length, blogs: popularBlogs };
+	}
 };
 
-const favoriteBlogs = (user) => {
-  console.log(user.id);
-  const blogs = User.findById(user.id).favourites;
-  if (!blogs || blogs.length === 0) {
-    return { total: 0, blogs: [] };
-  }
-  return { total: blogs.length, blogs };
+const favoriteBlogs = async (user) => {
+	const blogs = (await User.findById(user.id).populate("favourites"))?.toObject()?.favourites;
+	if (!blogs || blogs.length === 0) {
+		return { total: 0, blogs: [] };
+	}
+	return { total: blogs.length, blogs };
 };
 
-const toggleFavorite = (postId, user) => {
-  const blog = getSingleBlog(postId);
-  if (!blog) {
-    throw new Error("Blog not found");
-  }
+const toggleFavorite = async (postId, user) => {
+	const blog = await getSingleBlog(postId);
+	if (!blog) {
+		throw new Error("Blog not found");
+	}
 
-  // Toogle on User's favorite list
-  const index = user.favourites?.findIndex((fav) => fav.id === postId);
-  if (index === -1) {
-    user.favourites.push({
-      id: postId,
-      title: blog.title,
-      tags: blog.tags,
-    });
-  } else {
-    user.favourites.splice(index, 1);
-  }
+	// Toogle on User's favorite list
+	const index = user.favourites?.findIndex((fav) => fav.toString() === postId);
+	if (index === -1) {
+		user.favourites.push(postId);
+	} else {
+		user.favourites.splice(index, 1);
+	}
 
-  // Update user's favorite list
-  User.updateById(user.id, { favourites: user.favourites });
+	// Update user's favorite list
+	await User.findByIdAndUpdate(user.id, { favourites: user.favourites });
 
-  // Return blog with property of isFavorite
-  return { ...blog, isFavourite: index === -1 };
+	// Return blog with property of isFavorite
+	return { ...blog, isFavourite: index === -1 };
 };
 
-const commentAPost = (postId, body) => {
-  const blog = getSingleBlog(postId);
+const commentAPost = async (postId, body) => {
+	const blog = await getSingleBlog(postId);
 
-  if (!blog) {
-    throw new Error("Blog not found");
-  }
+	if (!blog) {
+		throw new Error("Blog not found");
+	}
 
-  const newComment = {
-    id: crypto.randomBytes(10).toString("hex"),
-    content: body.content,
-    author: body.author,
-  };
+	const newComment = {
+		content: body.content,
+		author: body.author,
+	};
 
-  blog.comments.push(newComment);
-  const updatedBlog = Blog.updateById(postId, blog);
-  return updatedBlog;
+	blog.comments.push(newComment);
+
+	const updatedBlog = (
+		await Blog.findByIdAndUpdate(postId, { comments: blog.comments }, { new: true })
+	)?.toObject();
+	return updatedBlog;
 };
 
-const deleteComment = (postId, commentId) => {
-  const blog = getSingleBlog(postId);
+const deleteComment = async (postId, commentId) => {
+	const blog = await getSingleBlog(postId);
 
-  if (!blog) {
-    throw new Error("Blog not found");
-  }
+	if (!blog) {
+		throw new Error("Blog not found");
+	}
 
-  const index = blog.comments.findIndex((comment) => comment.id === commentId);
-  if (index === -1) {
-    throw new Error("Comment not found");
-  }
+	console.log(blog.comments);
 
-  blog.comments.splice(index, 1);
-  const updatedBlog = Blog.updateById(postId, blog);
-  return updatedBlog;
+	const index = blog.comments.findIndex((comment) => comment._id?.toString() === commentId);
+	if (index === -1) {
+		throw new Error("Comment not found");
+	}
+
+	blog.comments.splice(index, 1);
+	const updatedBlog = (await Blog.findByIdAndUpdate(postId, blog, { new: true }))?.toObject();
+	return updatedBlog;
 };
 
-const likeABlog = (postId, user) => {
-  const blog = getSingleBlog(postId);
+const likeABlog = async (postId, user) => {
+	const blog = await getSingleBlog(postId);
 
-  if (!blog) {
-    throw new Error("Blog not found");
-  }
-  console.log(blog);
-  const index = blog.likes.findIndex((like) => like.id === user.id);
-  if (index === -1) {
-    blog.likes.push({ id: user.id });
-  } else {
-    blog.likes.splice(index, 1);
-  }
+	if (!blog) {
+		throw new Error("Blog not found");
+	}
 
-  const updatedBlog = Blog.updateById(postId, blog);
-  return { isLiked: index === -1, likes: updatedBlog.likes };
+	const index = blog.likes.findIndex((like) => String(like) === user.id);
+	if (index === -1) {
+		blog.likes.push(user.id);
+	} else {
+		blog.likes.splice(index, 1);
+	}
+
+	const updatedBlog = await Blog.findByIdAndUpdate(postId, blog, { new: true });
+	return { isLiked: index === -1, likes: updatedBlog.likes };
 };
 
 module.exports.BlogService = {
-  createNewBlog,
-  getBlogs,
-  getSingleBlog,
-  updateBlog,
-  popularBlogs,
-  favoriteBlogs,
-  toggleFavorite,
-  commentAPost,
-  deleteComment,
-  likeABlog,
+	createNewBlog,
+	getBlogs,
+	getSingleBlog,
+	updateBlog,
+	popularBlogs,
+	favoriteBlogs,
+	toggleFavorite,
+	commentAPost,
+	deleteComment,
+	likeABlog,
 };

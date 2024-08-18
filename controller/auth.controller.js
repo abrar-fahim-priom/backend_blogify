@@ -8,13 +8,13 @@ const { AuthService } = require("../services/auth.serivce");
  * @returns {Object} The result of the login operation.
  */
 const login = async (req, res) => {
-  if (!req?.body?.email || !req?.body?.password) {
-    return res.status(400).json({ message: "Please provide email and password" });
-  }
+	if (!req?.body?.email || !req?.body?.password) {
+		return res.status(400).json({ message: "Please provide email and password" });
+	}
 
-  const result = await AuthService.login(req.body);
+	const result = await AuthService.login(req.body);
 
-  res.status(200).json(result);
+	res.status(200).json(result);
 };
 
 /**
@@ -29,16 +29,21 @@ const login = async (req, res) => {
  * @param {Object} res - The response object.
  * @returns {Object} The result of the registration process.
  */
-const register = (req, res) => {
-  if (!req?.body?.email || !req?.body?.password || !req?.body?.firstName || !req?.body?.lastName) {
-    return res.status(400).json({
-      message: "Please provide email, password, firstName and lastName",
-    });
-  }
+const register = async (req, res) => {
+	if (
+		!req?.body?.email ||
+		!req?.body?.password ||
+		!req?.body?.firstName ||
+		!req?.body?.lastName
+	) {
+		return res.status(400).json({
+			message: "Please provide email, password, firstName and lastName",
+		});
+	}
 
-  const result = AuthService.register(req.body);
+	const result = await AuthService.register(req.body);
 
-  res.status(201).json(result);
+	res.status(201).json(result);
 };
 
 /**
@@ -48,15 +53,15 @@ const register = (req, res) => {
  * @returns {Object} - The result of refreshing the token.
  */
 const refreshToken = async (req, res) => {
-  const { refreshToken } = req.body || {};
+	const { refreshToken } = req.body || {};
 
-  if (!refreshToken) {
-    return res.status(400).json({ message: "Please provide refreshToken" });
-  }
+	if (!refreshToken) {
+		return res.status(400).json({ message: "Please provide refreshToken" });
+	}
 
-  const result = await AuthService.refreshToken(refreshToken);
+	const result = await AuthService.refreshToken(refreshToken);
 
-  res.status(200).json(result);
+	res.status(200).json(result);
 };
 
 module.exports.AuthController = { login, register, refreshToken };

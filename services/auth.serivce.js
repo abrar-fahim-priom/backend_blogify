@@ -1,8 +1,7 @@
 const bcrypt = require("bcryptjs");
 const getNewTokens = require("../util/getNewTokens");
-const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
-const { User } = require("../model/user.model");
+const User = require("../model/UserModel");
 
 /**
  * Authenticates a user by checking their email and password.
@@ -14,27 +13,27 @@ const { User } = require("../model/user.model");
  * @throws {Error} - If the user is not found or the password is invalid.
  */
 const login = async ({ email, password }) => {
-  const user = User.findUserByEmail(email);
+	const user = (await User.findOne({ email }))?.toObject();
 
-  if (!user) {
-    throw new Error("User not found");
-  }
+	if (!user) {
+		throw new Error("User not found");
+	}
 
-  const isPasswordCorrect = bcrypt.compareSync(password, user.password);
+	const isPasswordCorrect = bcrypt.compareSync(password, user.password);
 
-  if (!isPasswordCorrect) {
-    throw new Error("Invalid password");
-  }
+	if (!isPasswordCorrect) {
+		throw new Error("Invalid password");
+	}
 
-  const tokens = getNewTokens(user);
+	const tokens = getNewTokens(user);
 
-  let userObj = Object.assign({}, user);
-  delete userObj.password;
+	let userObj = Object.assign({}, user);
+	delete userObj.password;
 
-  return {
-    user: userObj,
-    token: tokens,
-  };
+	return {
+		user: userObj,
+		token: tokens,
+	};
 };
 
 /**
@@ -47,39 +46,37 @@ const login = async ({ email, password }) => {
  * @returns {Object} - An object containing the registered user and the authentication token.
  * @throws {Error} - If the user already exists.
  */
-const register = (body) => {
-  const { email, password, firstName, lastName } = body;
+const register = async (body) => {
+	const { email, password, firstName, lastName } = body;
 
-  const user = User.findUserByEmail(email);
+	const user = await User.exists({ email });
 
-  if (user) {
-    throw new Error("User already exists");
-  }
+	if (user) {
+		throw new Error("User already exists");
+	}
 
-  const hashedPassword = bcrypt.hashSync(password, 8);
+	const hashedPassword = bcrypt.hashSync(password, 8);
 
-  const newUser = {
-    id: crypto.randomBytes(10).toString("hex"),
-    email,
-    firstName,
-    lastName,
-    avatar: null,
-    bio: "",
-    password: hashedPassword,
-    favourites: [],
-  };
+	const newUserData = {
+		email,
+		firstName,
+		lastName,
+		bio: "",
+		password: hashedPassword,
+		favourites: [],
+	};
 
-  // add user to db
-  User.create(newUser);
+	// add user to db
+	const newUser = (await User.create(newUserData))?.toObject();
 
-  const token = getNewTokens(newUser);
-  const newObj = Object.assign({}, newUser);
-  delete newObj.password;
+	const token = getNewTokens(newUser);
+	const newObj = Object.assign({}, newUser);
+	delete newObj.password;
 
-  return {
-    user: newObj,
-    token,
-  };
+	return {
+		user: newObj,
+		token,
+	};
 };
 
 /**
@@ -90,31 +87,31 @@ const register = (body) => {
  * @throws {Error} - If the user associated with the refresh token is not found.
  */
 const refreshToken = (refreshToken) => {
-  // check if refresh token valid
-  const decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET_KEY);
+	// check if refresh token valid
+	const decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET_KEY);
 
-  if (!decoded) {
-    throw new Error("Invalid refresh token");
-  }
+	if (!decoded) {
+		throw new Error("Invalid refresh token");
+	}
 
-  if (decoded.type !== "refresh") {
-    throw new Error("Invalid token type");
-  }
+	if (decoded.type !== "refresh") {
+		throw new Error("Invalid token type");
+	}
 
-  // check if user exists
-  const user = User.findById(decoded.id);
+	// check if user exists
+	const user = User.findById(decoded.id);
 
-  if (!user) {
-    throw new Error("User not found");
-  }
+	if (!user) {
+		throw new Error("User not found");
+	}
 
-  const token = getNewTokens(user);
+	const token = getNewTokens(user);
 
-  return token;
+	return token;
 };
 
 module.exports.AuthService = {
-  login,
-  register,
-  refreshToken,
+	login,
+	register,
+	refreshToken,
 };
