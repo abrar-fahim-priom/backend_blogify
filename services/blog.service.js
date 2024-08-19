@@ -17,7 +17,7 @@ const createNewBlog = async (body, author) => {
 	const newBlog = await Blog.create({
 		title,
 		content,
-		thumbnail: thumbnail || null,
+		thumbnail: thumbnail || DEFAULT_BLOG_IMAGE,
 		author: { id, firstName, lastName, avatar },
 		tags: tags?.split(",").map((tag) => tag.trim()),
 		likes: [],
@@ -116,7 +116,7 @@ const toggleFavorite = async (postId, user) => {
 	if (index === -1) {
 		user.favourites.push(postId);
 	} else {
-		user.favourites.splice(index, 1);
+		user.favourites?.splice(index, 1);
 	}
 
 	// Update user's favorite list
@@ -172,7 +172,7 @@ const likeABlog = async (postId, user) => {
 		throw new Error("Blog not found");
 	}
 
-	const index = blog.likes.findIndex((like) => String(like) === user.id);
+	const index = blog.likes.findIndex((like) => String(like) === String(user.id));
 	if (index === -1) {
 		blog.likes.push(user.id);
 	} else {
