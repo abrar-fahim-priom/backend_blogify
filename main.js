@@ -15,7 +15,7 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
     origin: [
       "http://localhost:5173", // Frontend development URL
-      "https://versa-store-frontend.vercel.app", // Frontend production URL
+      "https://frontend-blogify.vercel.app",
     ],
   })
 );
@@ -52,7 +52,6 @@ app.listen(PORT, () => {
   connectDB()
     .then(() => {
       console.info(`Server running at port:${PORT}`);
-      console.log("http://localhost:3000");
     })
     .catch((err) => {
       console.error(err);
