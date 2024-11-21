@@ -12,11 +12,13 @@ const app = express();
 app.use(
   cors({
     credentials: true,
-    allowedHeaders: "Content-Type,Authorization",
-    origin: ["http://localhost:5173", "http://localhost:8080"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    origin: [
+      "http://localhost:5173", // Frontend development URL
+      "https://versa-store-frontend.vercel.app", // Frontend production URL
+    ],
   })
 );
-
 app.use(express.static(__dirname + "/public"));
 app.use("/uploads", express.static("uploads"));
 
